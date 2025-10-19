@@ -1,6 +1,11 @@
-name: Build Electron
+name: Build Electron (clean install fix)
 
-# ... (your existing on:, jobs:, etc.)
+on:
+  push:
+    branches:
+      - main
+      - copilot/convert-to-electron-app
+  workflow_dispatch:
 
 jobs:
   build:
@@ -8,6 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -16,13 +22,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Clean install (cross-platform)
+      # Clean install step: Windows
+      - name: Clean install (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          # remove old installs and lockfile to avoid optional-deps install issues
-          rm -rf node_modules package-lock.json || del /s /q node_modules & del package-lock.json || true
+          Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
+          npm install --no-optional
+
+      # Clean install step: Linux / macOS
+      - name: Clean install (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          rm -rf node_modules package-lock.json || true
           npm install --no-optional
 
       - name: Build web assets
         run: npm run build:web
 
-      # ... rest of your build/packaging steps
+      # (Continue with your electron build/packaging steps here)
+      # - name: Build Electron package
+      #   run: npx electron-builder --win nsis --x64 --publish=never
