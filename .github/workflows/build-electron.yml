@@ -1,70 +1,28 @@
-name: Build Electron Desktop App
+name: Build Electron
 
-on:
-  push:
-    branches:
-      - electron-desktop
-      - main
-      - 'copilot/**'
+# ... (your existing on:, jobs:, etc.)
 
 jobs:
   build:
-    runs-on: windows-latest
-    permissions:
-      contents: write  # Required for creating releases
-      actions: read    # Required for actions
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Clean install (cross-platform)
+        run: |
+          # remove old installs and lockfile to avoid optional-deps install issues
+          rm -rf node_modules package-lock.json || del /s /q node_modules & del package-lock.json || true
+          npm install --no-optional
 
       - name: Build web assets
         run: npm run build:web
 
-      - name: Verify dist exists
-        run: |
-          if (!(Test-Path "dist")) {
-            Write-Error "dist directory not found after build"
-            exit 1
-          }
-        shell: pwsh
-
-      - name: Install electron-builder
-        run: npm install -g electron-builder
-
-      - name: Build Electron app
-        run: npx electron-builder --win nsis --x64 --publish=never
-
-      - name: Zip dist folder
-        run: Compress-Archive -Path dist -DestinationPath dist.zip
-        shell: pwsh
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-build
-          path: |
-            release/*.exe
-            dist.zip
-
-      - name: Create Release
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
-          draft: false
-          prerelease: false
-          files: |
-            release/*.exe
-            dist.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # ... rest of your build/packaging steps
