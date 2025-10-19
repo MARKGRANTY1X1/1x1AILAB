@@ -1,0 +1,5 @@
+{
+  "name": " Crypto Mining  2real",
+  "description": "A  desktop application that allows users to 'mine' various crypto tokens. It features a clean dashboard to monitor hash rate, earnings, and select different tokens for payout, similar to services like Unmineable.",
+  "requestFramePermissions": []
+}
